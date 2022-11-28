@@ -1,10 +1,12 @@
 import styles from "./Mint.module.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ethers } from "ethers";
-import config from "./config";
+import SmartContract from "./config";
 import { useState, useEffect } from "react";
 import { ApolloProvider, ApolloClient, InMemoryCache } from "@apollo/client"
 import GraphEx from './graphEx';
+import { parseEther } from "ethers/lib/utils";
+import axios from 'axios'
 
 // Querying the Blockchain
 const client = new ApolloClient({
@@ -12,12 +14,18 @@ const client = new ApolloClient({
   uri: "https://api.thegraph.com/subgraphs/name/tomntomson/tnmeta-marketplace"
 })
 
-const currentConfig = config.testnet;
-const Address = currentConfig.Address;
-const ABI = config.abi.ABI;
+const marketAddress = SmartContract.marketAddress;
+const marketABI = SmartContract.abi.marketABI;
+const nftAddress = SmartContract.nftAddress;
+const nftABI = SmartContract.abi.nftABI;
+const byteCode = SmartContract.bytecode
 
 function App() {
-  const [contract, setContract] = useState("");
+  const [market, setMarket] = useState("");
+  const [nft, setNft] = useState("");
+  const [signer, setSigner] = useState('')
+  const [image, setImage] = useState('')
+  const [resultContract, setResultContract] = useState('')
   useEffect(() => {
     async function exec() {
       const accounts = await window.ethereum.request({
@@ -27,6 +35,8 @@ function App() {
       if (accounts.length > 0) {
         await connect();
       }
+      const res = await axios.get('http://54.164.86.134:8080/v1/nftList')
+      console.log(res.data.result.itemsells)
     }
     exec();
   }, []);
@@ -43,10 +53,14 @@ function App() {
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        setSigner(signer)
 
-        const Instance = new ethers.Contract(Address, ABI, signer);
-        setContract(Instance);
-        console.log(Instance);
+        const Market = new ethers.Contract(marketAddress, marketABI, signer);
+        const Nft = new ethers.Contract(nftAddress, nftABI, signer);
+        setMarket(Market);
+        setNft(Nft)
+        console.log(Market);
+        console.log(Nft);
       } catch (e) {
         console.log(e);
       }
@@ -65,10 +79,34 @@ function App() {
     }
   }
 
-  async function viewOwner() {
-    // const provider = new ethers.providers.Web3Provider(window.ethereum);
-    // const signer = provider.getSigner();
-    console.log(await contract.owner());
+  async function sell() {
+    let approveRes = await nft.approve(marketAddress, 36)
+    approveRes.wait(1)
+    console.log(approveRes)
+
+    let price = parseEther('0.1').toString()
+    let sell = await market.sellNft(nftAddress, 36, price)
+    console.log(sell)
+  }
+
+  async function imageview() {
+    const requestURL = await nft.tokenURI(2)
+    const tokenURIResponse = await (await fetch(requestURL)).json()
+    const imageURI = tokenURIResponse.image
+    setImage(imageURI)
+  }
+
+  async function contractDeploy() {
+    const factory = new ethers.ContractFactory(nftABI, byteCode, signer)
+    const res = await factory.deploy()
+    console.log(res.address)
+    setResultContract(res.address)
+  }
+
+  async function mint() {
+    const nftContract = new ethers.Contract(resultContract, nftABI, signer)
+    const res = await nftContract.mint('0x902c18fF520EE2a51775Ec52FF2D56bbE3b02a4c', 2)
+    console.log(res)
   }
 
   return (
@@ -81,10 +119,25 @@ function App() {
             Connect
           </button>
           <div className={styles.coll}></div>
-          <button className={styles.submit} onClick={viewOwner}>
-            Owner
+          <button className={styles.submit} onClick={sell}>
+            SellNft
+          </button>
+          <div className={styles.coll}></div>
+          <button className={styles.submit} onClick={imageview}>
+            image
+          </button>
+          <div className={styles.coll}></div>
+            <img src={image} /> 
+          <div className={styles.coll}></div>
+          <button className={styles.submit} onClick={contractDeploy}>
+            Deploy
+          </button>
+          <div className={styles.coll}></div>
+          <button className={styles.submit} onClick={mint}>
+            Mint
           </button>
         </div>
+
         <Router>
           <Routes>
             <Route path="/graph" element={<GraphEx />} />
