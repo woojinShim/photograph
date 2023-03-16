@@ -16,21 +16,22 @@ function getElem(elemId) {
 function App() {
   const [nft, setNft] = useState("");
   const [provider, setProvider] = useState("");
-  const [accounts, setAccounts] = useState("");
+  const [account, setAccounts] = useState("");
 
   useEffect(() => {
-    async function exec() {
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
-      });
-      console.log("accounts =>", accounts);
-      if (accounts.length > 0) {
-        await connect();
-        setAccounts(accounts);
-      }
-    }
     exec();
   }, []);
+
+  async function exec() {
+    const accounts = await window.ethereum.request({
+      method: "eth_accounts",
+    });
+    console.log("accounts =>", accounts);
+    if (accounts.length > 0) {
+      await connect();
+      setAccounts(accounts);
+    }
+  }
 
   async function connect() {
     if (typeof window.ethereum !== "undefined") {
@@ -77,7 +78,7 @@ function App() {
     const gasPrice = (await provider.getGasPrice()).toString();
     console.log(gasLimit, gasPrice);
 
-    let tx = await nft.mint(accounts[0], 1, {
+    let tx = await nft.mint(account[0], 1, {
       gasPrice: gasPrice,
     });
 
