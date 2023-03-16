@@ -1,31 +1,23 @@
 import styles from "./Mint.module.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ethers } from "ethers";
 import SmartContract from "./config";
 import { useState, useEffect } from "react";
-import { ApolloProvider, ApolloClient, InMemoryCache } from "@apollo/client"
-import GraphEx from './graphEx';
-import { parseEther } from "ethers/lib/utils";
-import axios from 'axios'
+import Web3 from "web3";
 
-// Querying the Blockchain
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  uri: "https://api.thegraph.com/subgraphs/name/tomntomson/tnmeta-marketplace"
-})
-
-const marketAddress = SmartContract.marketAddress;
-const marketABI = SmartContract.abi.marketABI;
 const nftAddress = SmartContract.nftAddress;
 const nftABI = SmartContract.abi.nftABI;
-const byteCode = SmartContract.bytecode
+
+const web3 = new Web3(process.env.REACT_APP_MUMBAI_RPC_URL);
+
+function getElem(elemId) {
+  return document.getElementById(elemId);
+}
 
 function App() {
-  const [market, setMarket] = useState("");
   const [nft, setNft] = useState("");
-  const [signer, setSigner] = useState('')
-  const [image, setImage] = useState('')
-  const [resultContract, setResultContract] = useState('')
+  const [provider, setProvider] = useState("");
+  const [accounts, setAccounts] = useState("");
+
   useEffect(() => {
     async function exec() {
       const accounts = await window.ethereum.request({
@@ -34,9 +26,8 @@ function App() {
       console.log("accounts =>", accounts);
       if (accounts.length > 0) {
         await connect();
+        setAccounts(accounts);
       }
-      const res = await axios.get('http://54.164.86.134:8080/v1/nftList')
-      console.log(res.data.result.itemsells)
     }
     exec();
   }, []);
@@ -47,19 +38,21 @@ function App() {
         await window.ethereum.request({ method: "eth_requestAccounts" });
         let chainId = await window.ethereum.request({ method: "eth_chainId" });
 
-        if (chainId !== 80001) {
+        if (chainId !== "0x13881") {
           await switchChain();
         }
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signer = provider.getSigner();
-        setSigner(signer)
+        setProvider(provider);
 
-        const Market = new ethers.Contract(marketAddress, marketABI, signer);
-        const Nft = new ethers.Contract(nftAddress, nftABI, signer);
-        setMarket(Market);
-        setNft(Nft)
-        console.log(Market);
+        const admin = new ethers.Wallet(
+          process.env.REACT_APP_PRIVATE_KEY,
+          provider
+        );
+        const Nft = new ethers.Contract(nftAddress, nftABI, admin);
+
+        setNft(Nft);
+
         console.log(Nft);
       } catch (e) {
         console.log(e);
@@ -72,78 +65,58 @@ function App() {
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x13881" /*"0x" + "80001".toString(16)*/ }],
+        params: [{ chainId: "0x13881" /*"0x" + "80001".toString(16)*/ }],
       });
     } catch (e) {
       console.log(e);
     }
   }
 
-  async function sell() {
-    let approveRes = await nft.approve(marketAddress, 36)
-    approveRes.wait(1)
-    console.log(approveRes)
-
-    let price = parseEther('0.1').toString()
-    let sell = await market.sellNft(nftAddress, 36, price)
-    console.log(sell)
-  }
-
-  async function imageview() {
-    const requestURL = await nft.tokenURI(2)
-    const tokenURIResponse = await (await fetch(requestURL)).json()
-    const imageURI = tokenURIResponse.image
-    setImage(imageURI)
-  }
-
-  async function contractDeploy() {
-    const factory = new ethers.ContractFactory(nftABI, byteCode, signer)
-    const res = await factory.deploy()
-    console.log(res.address)
-    setResultContract(res.address)
-  }
-
   async function mint() {
-    const nftContract = new ethers.Contract(resultContract, nftABI, signer)
-    const res = await nftContract.mint('0x902c18fF520EE2a51775Ec52FF2D56bbE3b02a4c', 2)
-    console.log(res)
+    const gasLimit = (await provider.getBlock("latest")).gasLimit.toString();
+    const gasPrice = (await provider.getGasPrice()).toString();
+    console.log(gasLimit, gasPrice);
+
+    let tx = await nft.mint(accounts[0], 1, {
+      gasPrice: gasPrice,
+    });
+
+    let res = tx.hash;
+    console.log(res);
+    getElem("claimMessage").innerHTML = "waiting for mint tx confirmation ...";
+    await tx.wait();
+    let txHash = await provider.getTransaction(res);
+    console.log(txHash);
+    let Ti;
+    /** Get Token Number */
+    const receipt = await web3.eth.getTransactionReceipt(res);
+    let n = receipt.logs.length - 1;
+    for (let i = 0; i < n; i++) {
+      const tokenId = web3.utils.hexToNumber(receipt.logs[i].topics[3]);
+      Ti = tokenId;
+    }
+    getElem(
+      "claimMessage"
+    ).innerHTML = `Minted for https://mumbai.polygonscan.com/tx/${res} Opensea URL is https://testnets.opensea.io/assets/mumbai/0x845a250AfF3a9371184a1EF83De9099A8AE6a335/${Ti}`;
   }
 
   return (
     <>
-      <ApolloProvider client={client}>
-        <h2>Contract</h2>
-        <br />
-        <div className={styles.box}>
-          <button className={styles.submit} onClick={connect}>
-            Connect
-          </button>
-          <div className={styles.coll}></div>
-          <button className={styles.submit} onClick={sell}>
-            SellNft
-          </button>
-          <div className={styles.coll}></div>
-          <button className={styles.submit} onClick={imageview}>
-            image
-          </button>
-          <div className={styles.coll}></div>
-            <img src={image} /> 
-          <div className={styles.coll}></div>
-          <button className={styles.submit} onClick={contractDeploy}>
-            Deploy
-          </button>
-          <div className={styles.coll}></div>
-          <button className={styles.submit} onClick={mint}>
-            Mint
-          </button>
-        </div>
-
-        <Router>
-          <Routes>
-            <Route path="/graph" element={<GraphEx />} />
-          </Routes>
-        </Router>
-      </ApolloProvider>
+      <div className={styles.coll}></div>
+      <h2>Woojin Shim NFT </h2>
+      <br />
+      <div className={styles.box}>
+        <div className={styles.coll}></div>
+        <button className={styles.submit} onClick={connect}>
+          Connect Wallet
+        </button>
+        <div className={styles.coll}></div>
+        <button className={styles.submit} onClick={mint}>
+          Mint NFT
+        </button>
+        <div id="claimMessage"></div>
+        <div className={styles.coll}></div>
+      </div>
     </>
   );
 }
