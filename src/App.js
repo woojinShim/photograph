@@ -19,19 +19,18 @@ function App() {
   const [account, setAccounts] = useState("");
 
   useEffect(() => {
+    async function exec() {
+      const accounts = await window.ethereum.request({
+        method: "eth_accounts",
+      });
+      console.log("accounts =>", accounts);
+      if (accounts.length > 0) {
+        setAccounts(accounts);
+        // await connect();
+      }
+    }
     exec();
   }, []);
-
-  async function exec() {
-    const accounts = await window.ethereum.request({
-      method: "eth_accounts",
-    });
-    console.log("accounts =>", accounts);
-    if (accounts.length > 0) {
-      await connect();
-      setAccounts(accounts);
-    }
-  }
 
   async function connect() {
     if (typeof window.ethereum !== "undefined") {
