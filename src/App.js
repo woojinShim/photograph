@@ -50,10 +50,11 @@ function App() {
           provider
         );
         const Nft = new ethers.Contract(nftAddress, nftABI, admin);
-
         setNft(Nft);
 
         console.log(Nft);
+        getElem("connectMessage").innerHTML =
+          "Wallet is connected. Press the Mint NFT button below";
       } catch (e) {
         console.log(e);
       }
@@ -83,7 +84,7 @@ function App() {
 
     let res = tx.hash;
     console.log(res);
-    getElem("claimMessage").innerHTML = "waiting for mint tx confirmation ...";
+    getElem("claimMessage").innerHTML = "Waiting for Mint tx Confirmation ...";
     await tx.wait();
     let txHash = await provider.getTransaction(res);
     console.log(txHash);
@@ -110,6 +111,7 @@ function App() {
         <button className={styles.submit} onClick={connect}>
           Connect Wallet
         </button>
+        <div id="connectMessage"></div>
         <div className={styles.coll}></div>
         <button className={styles.submit} onClick={mint}>
           Mint NFT
