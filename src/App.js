@@ -37,7 +37,24 @@ function App() {
       try {
         await window.ethereum.request({ method: "eth_requestAccounts" });
         let chainId = await window.ethereum.request({ method: "eth_chainId" });
-
+        if (chainId === "0x1") {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: "0x13881",
+                rpcUrls: ["https://rpc-mumbai.maticvigil.com"],
+                chainName: "Mumbai Testnet",
+                nativeCurrency: {
+                  name: "MATIC",
+                  symbol: "MATIC",
+                  decimals: 18,
+                },
+                blockExplorerUrls: ["https://mumbai.polygonscan.com/"],
+              },
+            ],
+          });
+        }
         if (chainId !== "0x13881") {
           await switchChain();
         }
@@ -59,6 +76,7 @@ function App() {
         console.log(e);
       }
     } else {
+      window.open("https://metamask.io/download/", "_blank");
     }
   }
 
