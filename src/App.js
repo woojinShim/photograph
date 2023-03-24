@@ -1,7 +1,7 @@
 import styles from "./Mint.module.css";
 import { ethers } from "ethers";
 import SmartContract from "./config";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Web3 from "web3";
 
 const nftAddress = SmartContract.nftAddress;
@@ -14,24 +14,6 @@ function getElem(elemId) {
 }
 
 function App() {
-  const [nft, setNft] = useState("");
-  const [provider, setProvider] = useState("");
-  const [account, setAccounts] = useState("");
-
-  useEffect(() => {
-    async function exec() {
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
-      });
-      console.log("accounts =>", accounts);
-      if (accounts.length > 0) {
-        setAccounts(accounts);
-        // await connect();
-      }
-    }
-    exec();
-  }, []);
-
   async function connect() {
     if (typeof window.ethereum !== "undefined") {
       try {
@@ -59,19 +41,8 @@ function App() {
           await switchChain();
         }
 
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        setProvider(provider);
-
-        const admin = new ethers.Wallet(
-          process.env.REACT_APP_PRIVATE_KEY,
-          provider
-        );
-        const Nft = new ethers.Contract(nftAddress, nftABI, admin);
-        setNft(Nft);
-
-        console.log(Nft);
         getElem("connectMessage").innerHTML =
-          "Wallet is connected. Press the Mint NFT button below";
+          "지갑이 연결되었어요 아래에 민팅 버튼를 눌러주세요.";
       } catch (e) {
         console.log(e);
       }
@@ -92,17 +63,27 @@ function App() {
   }
 
   async function mint() {
+    const acc = await window.ethereum.request({
+      method: "eth_accounts",
+    });
+    getElem("claimMessage").innerHTML = "민팅대기";
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const admin = new ethers.Wallet(
+      process.env.REACT_APP_PRIVATE_KEY,
+      provider
+    );
+    const Nft = new ethers.Contract(nftAddress, nftABI, admin);
     const gasLimit = (await provider.getBlock("latest")).gasLimit.toString();
     const gasPrice = (await provider.getGasPrice()).toString();
     console.log(gasLimit, gasPrice);
-
-    let tx = await nft.mint(account[0], 1, {
+    getElem("claimMessage").innerHTML = "민팅중";
+    let tx = await Nft.mint(acc[0], 1, {
       gasPrice: gasPrice,
     });
 
     let res = tx.hash;
     console.log(res);
-    getElem("claimMessage").innerHTML = "Waiting for Mint tx Confirmation ...";
+    getElem("claimMessage").innerHTML = "30초 정도 기다려 주세요 ...";
     await tx.wait();
     let txHash = await provider.getTransaction(res);
     console.log(txHash);
@@ -116,23 +97,23 @@ function App() {
     }
     getElem(
       "claimMessage"
-    ).innerHTML = `Minted for https://mumbai.polygonscan.com/tx/${res} Opensea URL is https://testnets.opensea.io/assets/mumbai/0x845a250AfF3a9371184a1EF83De9099A8AE6a335/${Ti}`;
+    ).innerHTML = `트랜적션 내역은 https://mumbai.polygonscan.com/tx/${res} 오픈씨 확인은 https://testnets.opensea.io/assets/mumbai/0x845a250AfF3a9371184a1EF83De9099A8AE6a335/${Ti}`;
   }
 
   return (
     <>
       <div className={styles.coll}></div>
-      <h2>Woojin Shim NFT </h2>
+      <h2>고양이 가족 NFT </h2>
       <br />
       <div className={styles.box}>
         <div className={styles.coll}></div>
         <button className={styles.submit} onClick={connect}>
-          Connect Wallet
+          메타마스크 지갑 연결하기
         </button>
         <div id="connectMessage"></div>
         <div className={styles.coll}></div>
         <button className={styles.submit} onClick={mint}>
-          Mint NFT
+          NFT 프리민팅
         </button>
         <div id="claimMessage"></div>
         <div className={styles.coll}></div>
