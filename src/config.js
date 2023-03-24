@@ -1,5 +1,5 @@
 const SmartContract = {
-  nftAddress: "0x845a250AfF3a9371184a1EF83De9099A8AE6a335",
+  nftAddress: "0xd5A42f72c703964BFfcd6D31e9Bc69B7f80507C8",
   abi: {
     nftABI: [
       {
@@ -846,24 +846,6 @@ const SmartContract = {
           },
         ],
         stateMutability: "view",
-        type: "function",
-      },
-      {
-        inputs: [
-          {
-            internalType: "uint256[]",
-            name: "tokenIds",
-            type: "uint256[]",
-          },
-          {
-            internalType: "address",
-            name: "to",
-            type: "address",
-          },
-        ],
-        name: "transferBatch",
-        outputs: [],
-        stateMutability: "nonpayable",
         type: "function",
       },
       {

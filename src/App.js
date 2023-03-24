@@ -1,7 +1,6 @@
 import styles from "./Mint.module.css";
 import { ethers } from "ethers";
 import SmartContract from "./config";
-import { useState } from "react";
 import Web3 from "web3";
 
 const nftAddress = SmartContract.nftAddress;
