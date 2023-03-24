@@ -96,7 +96,7 @@ function App() {
     }
     getElem(
       "claimMessage"
-    ).innerHTML = `트랜적션 내역은 https://mumbai.polygonscan.com/tx/${res} 오픈씨 확인은 https://testnets.opensea.io/assets/mumbai/0x845a250AfF3a9371184a1EF83De9099A8AE6a335/${Ti}`;
+    ).innerHTML = `트랜적션 내역은 https://mumbai.polygonscan.com/tx/${res} 오픈씨 확인은 https://testnets.opensea.io/assets/mumbai/0xd5A42f72c703964BFfcd6D31e9Bc69B7f80507C8/${Ti}`;
   }
 
   return (
